@@ -1,0 +1,123 @@
+import './App.css'
+import Box from '@mui/material/Box'
+import Drawer from '@mui/material/Drawer'
+import React, {Profiler} from 'react'
+import CssBaseline from '@mui/material/CssBaseline'
+import Card from '@mui/material/Card'
+import Stack from '@mui/material/Stack'
+import Typography from '@mui/material/Typography'
+import PlotManager from './components/Plot'
+import SpinSlider from './components/SpinSlider'
+import AngSpeedSlider from './components/AngSpeedSlider'
+import GR_Switch from './components/GR_Switch'
+import RCoordSelector from './components/RCoordSelector'
+import τCoordSelector from './components/TauCoordSelector'
+import ProperTimeDisplay from './components/ProperTimeDisplay'
+import SimSpeedSlider from './components/SimSpeedSlider'
+import ResetButton from './components/ResetButton'
+import InfoButton from './components/InfoButton'
+
+import { useFPS } from './state/FPSContext'
+
+function logProfile(id, phase, actualTime, baseTime, startTime, commitTime) {
+  console.log(`--- ${id}'s ${phase} phase: ---`)
+  console.log(`Actual time: ${actualTime}`)
+  console.log(`Base time: ${baseTime}`)
+  console.log(`Start time: ${startTime}`)
+  console.log(`Commit time: ${commitTime}`)
+}
+
+function LabeledBox({ label, children }) {
+  return (
+    <Box sx={{ position: 'relative', width: '100%', height: '90px', m: 1, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+      <Typography variant="caption" sx={{ position: 'absolute', top: -10, left: '50%', transform: 'translateX(-50%)', backgroundColor: '#fff', px: 0.01 }}>
+        {label}
+      </Typography>
+      <Card variant="outlined" sx={{ width: '100%', height: '100%', p: 1, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+        {children}
+      </Card>
+    </Box>
+  )
+}
+
+function FPSCounter() {
+  const { fps } = useFPS()
+  return (
+    <Typography align="center" variant="h6">
+      {fps} FPS
+    </Typography>
+  )
+}
+
+
+
+function App(props) {
+  console.log("app init")
+  const drawerWidth = 300
+
+
+
+  const drawer = (
+    <div>
+    <Stack spacing={2} sx={{ width: {drawerWidth}, paddingY: 2, paddingX: 5 }}>
+        <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+          <GR_Switch/>
+        </Box>
+
+        <LabeledBox label="Initial r coord">
+          <RCoordSelector/>
+        </LabeledBox>
+
+        <LabeledBox label="ω₀">
+          <AngSpeedSlider/>
+        </LabeledBox>
+
+        <LabeledBox label="Simulation Speed">
+          <SimSpeedSlider/>
+        </LabeledBox>
+
+        <LabeledBox label="τ Resolution">
+          <Box>
+            <τCoordSelector/>
+          </Box>
+        </LabeledBox>
+
+        <LabeledBox label="Central Object Spin">
+          <SpinSlider/>
+        </LabeledBox>
+
+        <LabeledBox label="Elapsed τ">
+          <ProperTimeDisplay/>
+        </LabeledBox>
+        <ResetButton/>
+        <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+          <InfoButton/>
+        </Box>
+        {/* <FPSCounter/> */}
+      </Stack>
+    </div>
+  )
+
+  return (
+  <Box sx={{ display: 'flex' }}>
+      <CssBaseline />
+      <Drawer
+        variant="permanent"
+        sx={{
+          width: drawerWidth,
+          flexShrink: 0,
+          [`& .MuiDrawer-paper`]: { width: drawerWidth, boxSizing: 'border-box' },
+        }}
+      >
+        {drawer}
+      </Drawer>
+      <Box sx = {{flexGrow: 1, height: '100vh'}}>
+      {/* <Profiler id="PlotManager" onRender={logProfile}> */}
+        <PlotManager/>
+      {/* </Profiler> */}
+      </Box>
+
+  </Box>
+  )
+}
+export default App

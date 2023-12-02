@@ -1,13 +1,13 @@
 {
   "files": {
-    "main.css": "/gr_bh_orbits/static/css/main.f855e6bc.css",
+    "main.css": "/gr_bh_orbits/static/css/main.281dbb5b.css",
     "main.js": "/gr_bh_orbits/static/js/main.a1e2a0f1.js",
     "index.html": "/gr_bh_orbits/index.html",
-    "main.f855e6bc.css.map": "/gr_bh_orbits/static/css/main.f855e6bc.css.map",
+    "main.281dbb5b.css.map": "/gr_bh_orbits/static/css/main.281dbb5b.css.map",
     "main.a1e2a0f1.js.map": "/gr_bh_orbits/static/js/main.a1e2a0f1.js.map"
   },
   "entrypoints": [
-    "static/css/main.f855e6bc.css",
+    "static/css/main.281dbb5b.css",
     "static/js/main.a1e2a0f1.js"
   ]
 }

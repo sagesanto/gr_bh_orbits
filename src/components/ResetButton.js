@@ -2,7 +2,7 @@ import React from 'react'
 import { useDispatch } from 'react-redux'
 import Tooltip from '@mui/material/Tooltip'
 import Button from '@mui/material/Button'
-import { setResetSim, setSimulationRunning } from '../state/slices'
+import { setResetSim, setSimulationRunning, setProperTime } from '../state/slices'
 
 export default function ResetButton() {
     const dispatch = useDispatch()
@@ -13,7 +13,8 @@ export default function ResetButton() {
             <Button variant='outlined'
             color="secondary"
             onClick={() => { dispatch(setResetSim(true))
-                            dispatch(setSimulationRunning(false)) }}
+                            dispatch(setSimulationRunning(false))
+                            dispatch(setProperTime(0)) }}
             sx={{ borderColor: 'red', color: 'red', '&:hover': { boxShadow: '0 0 10px red',} }}
             >
                 Reset Simulation

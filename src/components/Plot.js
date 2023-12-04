@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState, Profiler } from 'react'
-import { useSelector, useDispatch } from 'react-redux'
-import { setProperTime, addPlotData, setClearGraph, setResetSim } from '../state/slices'
+import { useSelector, useDispatch, useStore } from 'react-redux'
+import { setProperTime, addPlotData, setClearGraph, setResetSim, setSimulationRunning, setCollided } from '../state/slices'
 import { useFPS } from '../state/FPSContext'
 import * as d3 from "d3"
 import { scaleLinear } from 'd3-scale'
@@ -48,7 +48,7 @@ function calc_derived_values(a,gr,r0,wFrac,tdiv) {
   const E = E2**(1/2)
   const L = (q2*w-2*A*(E/r0))/(1-2*gr/r)
   let dtau = 2*Math.PI/wC/tdiv
-  let phi = 0
+  let phi = -Math.PI/2
   let tau = 0
   let rp = r
   let rf = null
@@ -130,6 +130,7 @@ function D3Plot({ data, w, h, r0 }) {
         .call(yAxis)
 
       dispatch(setClearGraph(false))
+      dispatch(setCollided(false))
     } else {
       g.append('circle')
         .attr('cx', xScale(data.x)+xShift)
@@ -175,8 +176,8 @@ function PlotManager() {
   debugLog('manager init')
   const gr = useSelector((state) => state.gr.value)
   const r0 = useSelector((state) => state.initialRadius.value)
-  const a = useSelector((state) => state.spin.value)
-  const wFrac = useSelector((state) => state.angularVel.value)
+  const a = -useSelector((state) => state.spin.value)
+  const wFrac = -useSelector((state) => state.angularVel.value)
   const tdiv = useSelector((state) => state.tdiv.value)
   const speed = 1000/(useSelector((state) => state.simSpeed.value))
   const reset = useSelector((state) => state.resetSim.value)
@@ -194,22 +195,42 @@ function PlotManager() {
   debugLog("------------------------")
 
   let [r, phi, E, L, dtau, rp, rf, tau] = calc_derived_values(a, gr, r0, wFrac, tdiv)
+
+  const store = useStore()
+  const simulationRunningRef = useRef()
+
+  useEffect(() => {
+    simulationRunningRef.current = store.getState().simulationRunning.value
+    const unsubscribe = store.subscribe(() => {
+      simulationRunningRef.current = store.getState().simulationRunning.value
+    })
+
+    return () => {
+      unsubscribe()
+    }
+  }, [store])
+
   useEffect(() => {
     debugLog("plot effect")
     let intervalId
 
     const updatePlot = () => {
-      if (debug) { debugLog("plot update") }
-      let [newR, newPhi, newDtau, newRp, newRf, newTau, newPoint] = compute_next_point(a, gr, r, phi, E, L, dtau, rp, rf, tau)
-      dispatch(setProperTime(newTau))
-      if (newRf < 0) {
-        clearInterval(intervalId)
-        debugLog('hit the singularity')
-        dispatch(addPlotData({x:0, y:0}))
-      } else {
-          dispatch(addPlotData({x:newPoint.x, y:newPoint.y}))
-        }
-      [r, phi, dtau, rp, rf, tau] = [newR, newPhi, newDtau, newRp, newRf, newTau]
+      if (!simulationRunningRef.current) {
+        return
+      }
+        if (debug) { debugLog("plot update") }
+        let [newR, newPhi, newDtau, newRp, newRf, newTau, newPoint] = compute_next_point(a, gr, r, phi, E, L, dtau, rp, rf, tau)
+        dispatch(setProperTime(newTau))
+        if (newRf < 0) {
+          clearInterval(intervalId)
+          debugLog('hit the singularity')
+          dispatch(setCollided(true))
+          dispatch(addPlotData({x:0, y:0}))
+          dispatch(setSimulationRunning(false))
+        } else {
+            dispatch(addPlotData({x:newPoint.x, y:newPoint.y}))
+          }
+        [r, phi, dtau, rp, rf, tau] = [newR, newPhi, newDtau, newRp, newRf, newTau]
     }
     debugLog("speed",speed)
     intervalId = setInterval(updatePlot, speed)
@@ -217,7 +238,9 @@ function PlotManager() {
     return () => clearInterval(intervalId)
   }, [a, gr, r0, wFrac, tdiv, speed, reset])
 
-  return <DynamicPlot />
+  return ( 
+    <DynamicPlot />
+  )
 }
 
 export default PlotManager

@@ -7,6 +7,8 @@ import Slider from '@mui/material/Slider'
 
 export default function SpinSlider () {
   const spin = useSelector((state) => state.spin.value)
+  const simulationRunning = useSelector((state) => state.simulationRunning.value)
+
   const dispatch = useDispatch()
   return (
     <Grid container direction="column" alignItems="stretch">
@@ -19,6 +21,7 @@ export default function SpinSlider () {
             min={0}
             max={1}
             step={0.01}
+            disabled = {simulationRunning}
             onChange={(_, newValue) => dispatch(setSpin(newValue))}
             valueLabelDisplay="off"
             />

@@ -8,6 +8,8 @@ import Tooltip from '@mui/material/Tooltip'
 
 export default function SimSpeedSlider () {
     const simSpeed = useSelector((state) => state.simSpeed.value)
+    const simulationRunning = useSelector((state) => state.simulationRunning.value)
+
     const dispatch = useDispatch()
     const max_fps = 60
     const min_fps = 0.1
@@ -23,6 +25,7 @@ export default function SimSpeedSlider () {
                 defaultValue={100}
                 min={min_fps}
                 max={max_fps}
+                disabled = {simulationRunning}
                 step={0.1}
                 onChange={(_, newValue) => dispatch(setSimSpeed(newValue))}
                 valueLabelDisplay="off"

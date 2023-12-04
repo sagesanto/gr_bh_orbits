@@ -1,5 +1,5 @@
 import { configureStore } from '@reduxjs/toolkit'
-import { angVelReducer, initialRadiusReducer, spinReducer, grReducer, properTimeReducer, tdivReducer, plotDataReducer, simSpeedReducer, clearGraphReducer, resetSimReducer } from './slices'
+import { angVelReducer, initialRadiusReducer, spinReducer, grReducer, properTimeReducer, tdivReducer, plotDataReducer, simSpeedReducer, clearGraphReducer, resetSimReducer, simulationRunningReducer, collidedReducer } from './slices'
 
 export default configureStore({
   reducer: {
@@ -13,5 +13,7 @@ export default configureStore({
     simSpeed: simSpeedReducer,
     clearGraph: clearGraphReducer,
     resetSim: resetSimReducer,
+    simulationRunning: simulationRunningReducer,
+    collided: collidedReducer,
   },
 })

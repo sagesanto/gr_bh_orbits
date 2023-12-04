@@ -8,6 +8,7 @@ import Tooltip from '@mui/material/Tooltip'
 
 export default function AngSpeedSlider () {
   const angularVel = useSelector((state) => state.angularVel.value)
+  const simulationRunning = useSelector((state) => state.simulationRunning.value)
   const dispatch = useDispatch()
   return (
     <Grid container direction="column" alignItems="stretch">
@@ -24,6 +25,7 @@ export default function AngSpeedSlider () {
             step={0.01}
             onChange={(_, newValue) => dispatch(setAngVel(newValue))}
             valueLabelDisplay="off"
+            disabled={simulationRunning}
             />
         </Grid>
         <Typography variant="caption" sx={{ marginLeft: 2 }}> +1 </Typography>

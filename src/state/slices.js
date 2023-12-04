@@ -148,6 +148,35 @@ export const resetSim = createSlice({
 
 export const { set: setResetSim } = resetSim.actions
 
+export const simulationRunning = createSlice({
+    name: 'simulationRunning',
+    initialState: {
+        value: true,
+    },
+    reducers: {
+        set: (state, action) => {
+        state.value = action.payload
+        },
+    },
+    })
+
+export const { set: setSimulationRunning } = simulationRunning.actions
+
+
+export const collided = createSlice({
+    name: 'collided',
+    initialState: {
+        value: false,
+    },
+    reducers: {
+        set: (state, action) => {
+        state.value = action.payload
+        },
+    },
+    })
+
+export const { set: setCollided } = collided.actions
+
 export const angVelReducer = angularVel.reducer
 export const initialRadiusReducer = initialRadius.reducer
 export const spinReducer = spin.reducer
@@ -158,3 +187,5 @@ export const plotDataReducer = plotData.reducer
 export const simSpeedReducer = simSpeed.reducer
 export const clearGraphReducer = clearGraph.reducer
 export const resetSimReducer = resetSim.reducer
+export const simulationRunningReducer = simulationRunning.reducer
+export const collidedReducer = collided.reducer

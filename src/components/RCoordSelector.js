@@ -7,6 +7,7 @@ import MenuItem from '@mui/material/MenuItem'
 import Select from '@mui/material/Select'
 
 export default function RCoordSelector() {
+    const simulationRunning = useSelector((state) => state.simulationRunning.value)
     const r = useSelector((state) => state.initialRadius.value)
     const dispatch = useDispatch()  
     return (
@@ -18,6 +19,7 @@ export default function RCoordSelector() {
           onChange={(event) => dispatch(setInitialRadius(event.target.value))}
           label="r"
           native={false}
+          disabled = {simulationRunning}
           sx={{
             '& .MuiSelect-icon': {
               color: '#1976d2',

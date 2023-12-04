@@ -12,6 +12,8 @@ import Divider from '@mui/material/Divider'
 
 export default function τCoordSelector() {
     const τ = useSelector((state) => state.tdiv.value)
+    const simulationRunning = useSelector((state) => state.simulationRunning.value)
+
     const dispatch = useDispatch()
   
     const [tooltipOpen, setTooltipOpen] = React.useState(false)
@@ -56,6 +58,7 @@ export default function τCoordSelector() {
               onChange={(event) => dispatch(setTdiv(event.target.value))}
               onOpen={handleMenuOpen}
               onClose={handleMenuClose}
+              disabled = {simulationRunning}
               open={menuOpen}
                 native={false}
                 sx={{

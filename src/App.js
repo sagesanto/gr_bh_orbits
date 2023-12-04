@@ -34,7 +34,7 @@ function logProfile(id, phase, actualTime, baseTime, startTime, commitTime) {
 function LabeledBox({ label, height=90, children }) {
   return (
     <Box sx={{ position: 'relative', width: '100%', height: `${height}px`, m: 1, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-      <Typography variant="caption" sx={{ position: 'absolute', top: -10, left: '50%', transform: 'translateX(-50%)', backgroundColor: '#fff', px: 0.01 }}>
+      <Typography variant="caption" fontFamily={"'Roboto Condensed', sans-serif "} fontSize={"0.9rem"} lineHeight={1.5} letterSpacing={"0.00938em"} sx={{ position: 'absolute', top: -10, left: '50%', transform: 'translateX(-50%)', backgroundColor: '#fff', px: 0.01, textAlign: 'center',  whiteSpace: 'nowrap' }}>
         {label}
       </Typography>
       <Card variant="outlined" sx={{ width: '100%', height: '100%', p: 1, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
@@ -129,23 +129,22 @@ function App(props) {
   )
 
   return (
-  <Box sx={{ display: 'flex' }}>
-      <CssBaseline />
-      <Drawer
-        variant="permanent"
-        sx={{
-          width: drawerWidth,
-          flexShrink: 0,
-          [`& .MuiDrawer-paper`]: { width: drawerWidth, boxSizing: 'border-box' },
-        }}
-      >
-        {drawer}
-      </Drawer>
-      <Box sx = {{flexGrow: 1, height: '100vh'}}>
-        <PlotManager/>
-      </Box>
-
-  </Box>
+    <Box sx={{ display: 'flex' }}>
+        <CssBaseline />
+        <Drawer
+          variant="permanent"
+          sx={{
+            width: drawerWidth,
+            flexShrink: 0,
+            [`& .MuiDrawer-paper`]: { width: drawerWidth, boxSizing: 'border-box' },
+          }}
+        >
+          {drawer}
+        </Drawer>
+        <Box sx = {{flexGrow: 1, height: '100vh'}}>
+          <PlotManager/>
+        </Box>
+    </Box>
   )
 }
 export default App

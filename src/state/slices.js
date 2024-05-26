@@ -101,24 +101,45 @@ export const simSpeed = createSlice({
 
 export const { setTo: setSimSpeed } = simSpeed.actions
 
+// export const plotData = createSlice({
+//     name: 'plotData',
+//     initialState: {
+//         value: {
+//             x: null,
+//             y: null,
+//         },
+//     },
+//     reducers: {
+//         add: (state, action) => {
+//             // plotData stores one point at a time, but they're pushed to the svg array. this "append" function doesn't actually append, it just sets the value to the new point, which will be appended by the plot
+//             state.value.x = action.payload.x
+//             state.value.y = action.payload.y
+//         },
+//     },
+//     })
+
 export const plotData = createSlice({
     name: 'plotData',
     initialState: {
-        value: {
-            x: null,
-            y: null,
-        },
+        value: [],
     },
     reducers: {
         add: (state, action) => {
-            // plotData stores one point at a time, but they're pushed to the svg array. this "append" function doesn't actually append, it just sets the value to the new point, which will be appended by the plot
-            state.value.x = action.payload.x
-            state.value.y = action.payload.y
+            state.value.push({x: action.payload.x, y: action.payload.y, drawn: false});
+        },
+        clear: state => {
+            state.value = [...[]];
+        },
+        markAsDrawn: (state, action) => {
+            const point = state.value.find(d => d.x === action.payload.x && d.y === action.payload.y);
+            if (point) {
+                point.drawn = true;
+            }
         },
     },
-    })
+})
 
-export const { add: addPlotData } = plotData.actions
+export const { add: addPlotData, clear: clearPlotData, markAsDrawn: markAsDrawn } = plotData.actions
 
 export const clearGraph = createSlice({
     name: 'clearGraph',

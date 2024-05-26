@@ -1,10 +1,11 @@
 import React, { useEffect, useRef, useState, Profiler } from 'react'
 import { useSelector, useDispatch, useStore } from 'react-redux'
-import { setProperTime, addPlotData, setClearGraph, setResetSim, setSimulationRunning, setCollided } from '../state/slices'
+import { setProperTime, addPlotData, clearPlotData, markAsDrawn, setClearGraph, setResetSim, setSimulationRunning, setCollided } from '../state/slices'
 import { useFPS } from '../state/FPSContext'
 import * as d3 from "d3"
 import { scaleLinear } from 'd3-scale'
 
+const MAX_RES = 100 // maximum number of points added in one tick
 const debug = true
 
 function logProfile(id, phase, actualTime, baseTime, startTime, commitTime) {
@@ -93,6 +94,7 @@ function D3Plot({ data, w, h, r0 }) {
     .range([0, min_dimension])
 
   useEffect(() => {
+    // debugLog("data at beginning:",data)
     if (width <= 0 || height <= 0) return
 
     const svg = d3.select(ref.current)    
@@ -107,6 +109,8 @@ function D3Plot({ data, w, h, r0 }) {
     g.attr("transform", `translate(${margin.left},${margin.top})`)
 
     if (clear) {
+      debugLog("clearing plot")
+      dispatch(clearPlotData());
       g.selectAll("*").remove()
 
       const xAxis = d3.axisBottom(xScale)
@@ -132,12 +136,46 @@ function D3Plot({ data, w, h, r0 }) {
       dispatch(setClearGraph(false))
       dispatch(setCollided(false))
     } else {
-      g.append('circle')
-        .attr('cx', xScale(data.x)+xShift)
-        .attr('cy', yScale(data.y))
-        .attr('r', 3)
-        .style('fill', '#1976d2')
+      // // Use a data join to handle the enter, update, and exit selections
+      // const newData = data.filter(d => !d.drawn);
+      // const circles = g.selectAll('circle').data(newData, d => `${d.x}-${d.y}`);
+      // const enterSelection = circles.enter();
+      // console.log("Number of new points: ", enterSelection.size());
+
+      // enterSelection.append('circle')
+      // .attr('cx', d => xScale(d.x)+xShift)
+      // .attr('cy', d => yScale(d.y))
+      // .attr('r', 3)
+      // .style('fill', '#1976d2')
+      // .each(function(d) { dispatch(markAsDrawn(d)); 
+      // });  
+      // circles.exit().remove()
+
+      // Filter the data to only include points where 'drawn' is not true
+      const newData = data.filter(d => !d.drawn);
+      let num_drawn = data.filter(d => d.drawn).length
+      debugLog("Number of new points: ", newData.length);
+      newData.forEach(datum => {
+        // Append a new circle for each data point
+        g.append('circle')
+          .attr('cx', xScale(datum.x) + xShift)
+          .attr('cy', yScale(datum.y))
+          .attr('r', 3)
+          .style('fill', '#1976d2');
+
+        // After appending the point, set 'drawn' to true
+        dispatch(markAsDrawn(datum));
+      });
     }
+    // debugLog("data at end:",data)
+    
+    //else {
+    //   g.append('circle')
+    //     .attr('cx', xScale(data.x)+xShift)
+    //     .attr('cy', yScale(data.y))
+    //     .attr('r', 3)
+    //     .style('fill', '#1976d2')
+    // }
   }, [data, clear])
 
   return (
@@ -215,23 +253,29 @@ function PlotManager() {
     let intervalId
 
     const updatePlot = () => {
-      if (!simulationRunningRef.current) {
-        return
-      }
-        if (debug) { debugLog("plot update") }
-        let [newR, newPhi, newDtau, newRp, newRf, newTau, newPoint] = compute_next_point(a, gr, r, phi, E, L, dtau, rp, rf, tau)
-        dispatch(setProperTime(newTau))
-        if (newRf < 0) {
-          clearInterval(intervalId)
-          debugLog('hit the singularity')
-          dispatch(setCollided(true))
-          dispatch(addPlotData({x:0, y:0}))
-          dispatch(setSimulationRunning(false))
-        } else {
+      let num_points = Math.min(MAX_RES, Math.ceil(100/Math.sqrt(rp))) // number of points added in one tick
+      let dtau_eff = dtau/num_points // effective time step (to account for number of points added in one tick)
+      debugLog("num_points",num_points)
+      for (let i = 0; i < num_points; i++) {
+        if (!simulationRunningRef.current) {
+          return
+        }
+          debugLog("plot data update")
+          let [newR, newPhi, newDtau, newRp, newRf, newTau, newPoint] = compute_next_point(a, gr, r, phi, E, L, dtau_eff, rp, rf, tau)
+          if (newRf < 0) {
+            clearInterval(intervalId)
+            debugLog('hit the singularity')
+            dispatch(setCollided(true))
+            dispatch(addPlotData({x:0, y:0}))
+            dispatch(setSimulationRunning(false))
+            return
+          } else {
             dispatch(addPlotData({x:newPoint.x, y:newPoint.y}))
           }
-        [r, phi, dtau, rp, rf, tau] = [newR, newPhi, newDtau, newRp, newRf, newTau]
-    }
+          [r, phi, dtau, rp, rf, tau] = [newR, newPhi, newDtau * num_points, newRp, newRf, newTau]
+          dispatch(setProperTime(tau))
+        }
+      }
     debugLog("speed",speed)
     intervalId = setInterval(updatePlot, speed)
 

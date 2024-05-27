@@ -124,6 +124,9 @@ export const plotData = createSlice({
         value: [],
     },
     reducers: {
+        set: (state, action) => {
+            state.value = action.payload
+        },
         add: (state, action) => {
             state.value.push({x: action.payload.x, y: action.payload.y, drawn: false});
         },
@@ -139,7 +142,7 @@ export const plotData = createSlice({
     },
 })
 
-export const { add: addPlotData, clear: clearPlotData, markAsDrawn: markAsDrawn } = plotData.actions
+export const { add: addPlotData, clear: clearPlotData, markAsDrawn, set: setPlotData } = plotData.actions
 
 export const clearGraph = createSlice({
     name: 'clearGraph',

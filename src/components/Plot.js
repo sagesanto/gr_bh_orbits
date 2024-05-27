@@ -1,8 +1,9 @@
 import React, { useEffect, useRef, useState, Profiler } from 'react'
 import { useSelector, useDispatch, useStore } from 'react-redux'
-import { setProperTime, addPlotData, clearPlotData, markAsDrawn, setClearGraph, setResetSim, setSimulationRunning, setCollided } from '../state/slices'
+import { setProperTime, setPlotData, addPlotData, clearPlotData, markAsDrawn, setClearGraph, setResetSim, setSimulationRunning, setCollided } from '../state/slices'
 import { useFPS } from '../state/FPSContext'
 import * as d3 from "d3"
+import { path as d3Path } from 'd3-path';
 import { scaleLinear } from 'd3-scale'
 
 const MAX_RES = 100 // maximum number of points added in one tick
@@ -73,7 +74,7 @@ function compute_next_point(a,gr,r, phi, E, L, dtau, rp, rf, tau){
     return[r, phi, dtau, rp, rf, tau, { x: r*Math.cos(phi), y: r*Math.sin(phi) }] 
 }
 
-function D3Plot({ data, w, h, r0 }) {
+function D3Plot({ data, w, h, r0, a }) {
   var margin = {top: 20, right: 10, bottom: 20, left: 10}
   var width = w - margin.left - margin.right
   var height = h - margin.top - margin.bottom
@@ -94,6 +95,7 @@ function D3Plot({ data, w, h, r0 }) {
     .range([0, min_dimension])
 
   useEffect(() => {
+    const startTime = performance.now();
     // debugLog("data at beginning:",data)
     if (width <= 0 || height <= 0) return
 
@@ -133,49 +135,75 @@ function D3Plot({ data, w, h, r0 }) {
         .attr('transform', `translate(${xShift},0)`)
         .call(yAxis)
 
+      // draw the ergosphere
+        const ergoData = d3.range(0, 2 * Math.PI, 0.01).map(t => {
+          // i'm adding Math.PI/2 to the angle to rotate by 90 degrees because i want to. not sure if this messes things up
+          return {
+            x: (1+Math.sqrt(1-a**2*Math.cos(t+Math.PI/2)**2)) * Math.cos(t),
+            y: (1+Math.sqrt(1-a**2*Math.cos(t+Math.PI/2)**2)) * Math.sin(t)
+          }
+        })
+        const ergo = d3.line()
+          .x(d => xScale(d.x) + xShift)
+          .y(d => yScale(d.y))
+          .curve(d3.curveBasisClosed);
+        g.append('path')
+          .attr('d', ergo(ergoData))
+          // .attr('transform', `translate(${xScale(0) + xShift},${yScale(0)})`)
+          .style('fill', 'none')
+          .style('stroke', 'red')
+          .style('opacity', 1);
+        
+        // event horizon
+        g.append('circle')
+        .attr('cx', xScale(0) + xShift)
+        .attr('cy', yScale(0))
+        .attr('r', xScale(1+Math.sqrt(1-a**2)) - xScale(0))
+        .style('fill', 'black')
+        .style("opacity", 0.5)
+        .style('stroke', 'black')
+        .style('stroke-width', 1.5);
+      
       dispatch(setClearGraph(false))
       dispatch(setCollided(false))
     } else {
-      // // Use a data join to handle the enter, update, and exit selections
+      // filter the data to only include points where drawn is not true
       // const newData = data.filter(d => !d.drawn);
-      // const circles = g.selectAll('circle').data(newData, d => `${d.x}-${d.y}`);
-      // const enterSelection = circles.enter();
-      // console.log("Number of new points: ", enterSelection.size());
+      debugLog("Number of new points: ", data.length);
+      // debugLog("Number of drawn points: ", num_drawn);
+      
+      // Define the line generator function
+      const line = d3.line()
+      .x(d => xScale(d.x) + xShift)
+      .y(d => yScale(d.y));
 
-      // enterSelection.append('circle')
-      // .attr('cx', d => xScale(d.x)+xShift)
-      // .attr('cy', d => yScale(d.y))
-      // .attr('r', 3)
-      // .style('fill', '#1976d2')
-      // .each(function(d) { dispatch(markAsDrawn(d)); 
-      // });  
-      // circles.exit().remove()
+      let path = g.select('path');
 
-      // Filter the data to only include points where 'drawn' is not true
-      const newData = data.filter(d => !d.drawn);
-      let num_drawn = data.filter(d => d.drawn).length
-      debugLog("Number of new points: ", newData.length);
-      newData.forEach(datum => {
-        // Append a new circle for each data point
+      if (path.empty()) {
+        path = g.append('path')
+          .attr('fill', 'none')
+          .attr('stroke', '#1976d2')
+          .attr('stroke-width', 1.5);
+      }
+
+      // // Update the 'd' attribute of the path element
+      // path.datum(newData)
+      //   .attr('d', line);
+
+      data.forEach(datum => {
+        path.lineTo(datum.x, datum.y)
         g.append('circle')
           .attr('cx', xScale(datum.x) + xShift)
           .attr('cy', yScale(datum.y))
           .attr('r', 3)
           .style('fill', '#1976d2');
 
-        // After appending the point, set 'drawn' to true
-        dispatch(markAsDrawn(datum));
+        // // after appending the point set drawn to true
+        // dispatch(markAsDrawn(datum));
       });
     }
-    // debugLog("data at end:",data)
-    
-    //else {
-    //   g.append('circle')
-    //     .attr('cx', xScale(data.x)+xShift)
-    //     .attr('cy', yScale(data.y))
-    //     .attr('r', 3)
-    //     .style('fill', '#1976d2')
-    // }
+    const endTime = performance.now();
+    console.log('D3Plot duration:', endTime - startTime);
   }, [data, clear])
 
   return (
@@ -187,6 +215,7 @@ function D3Plot({ data, w, h, r0 }) {
 function DynamicPlot() {
   const plotData = useSelector((state) => state.plotData.value)
   const r0 = useSelector((state) => state.initialRadius.value)
+  const a = -useSelector((state) => state.spin.value)
   const ref = useRef()
   const [dimensions, setDimensions] = useState({ w: 0, h: 0 })
   const { fps, tick } = useFPS()
@@ -203,7 +232,7 @@ function DynamicPlot() {
 
   return (
     <div ref={ref} style={{ width: '100%', height: '100%' }}>
-      <D3Plot data={plotData} {...dimensions} r0={r0} />
+      <D3Plot data={plotData} {...dimensions} r0={r0} a = {a} />
     </div>
   )
 }
@@ -253,9 +282,11 @@ function PlotManager() {
     let intervalId
 
     const updatePlot = () => {
-      let num_points = Math.min(MAX_RES, Math.ceil(100/Math.sqrt(rp))) // number of points added in one tick
+      const startTime = performance.now();
+      let num_points = Math.min(MAX_RES, Math.ceil(10/Math.sqrt(rp))) // number of points added in one tick
       let dtau_eff = dtau/num_points // effective time step (to account for number of points added in one tick)
       debugLog("num_points",num_points)
+      let pointArr = []
       for (let i = 0; i < num_points; i++) {
         if (!simulationRunningRef.current) {
           return
@@ -270,11 +301,15 @@ function PlotManager() {
             dispatch(setSimulationRunning(false))
             return
           } else {
-            dispatch(addPlotData({x:newPoint.x, y:newPoint.y}))
+            pointArr.push(newPoint)
+            // dispatch(addPlotData({x:newPoint.x, y:newPoint.y}))
           }
           [r, phi, dtau, rp, rf, tau] = [newR, newPhi, newDtau * num_points, newRp, newRf, newTau]
           dispatch(setProperTime(tau))
         }
+        dispatch(setPlotData(pointArr))
+        const endTime = performance.now();
+        console.log('updatePlot duration:', endTime - startTime);
       }
     debugLog("speed",speed)
     intervalId = setInterval(updatePlot, speed)

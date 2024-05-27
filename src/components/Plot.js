@@ -94,6 +94,8 @@ function D3Plot({ data, w, h, r0, a }) {
     .domain([-1.2*r0, 1.2*r0])
     .range([0, min_dimension])
 
+  const prevPoint = React.useRef(null);
+
   useEffect(() => {
     const startTime = performance.now();
     // debugLog("data at beginning:",data)
@@ -113,6 +115,7 @@ function D3Plot({ data, w, h, r0, a }) {
     if (clear) {
       debugLog("clearing plot")
       dispatch(clearPlotData());
+      prevPoint.current = null;
       g.selectAll("*").remove()
 
       const xAxis = d3.axisBottom(xScale)
@@ -147,23 +150,54 @@ function D3Plot({ data, w, h, r0, a }) {
           .x(d => xScale(d.x) + xShift)
           .y(d => yScale(d.y))
           .curve(d3.curveBasisClosed);
-        g.append('path')
+          g.append('path')
           .attr('d', ergo(ergoData))
           // .attr('transform', `translate(${xScale(0) + xShift},${yScale(0)})`)
           .style('fill', 'none')
           .style('stroke', 'red')
           .style('opacity', 1);
-        
-        // event horizon
+      
+          
+      // event horizon
+        let r_plus = 1 + Math.sqrt(1-a**2)
         g.append('circle')
         .attr('cx', xScale(0) + xShift)
         .attr('cy', yScale(0))
-        .attr('r', xScale(1+Math.sqrt(1-a**2)) - xScale(0))
+        .attr('r', xScale(r_plus) - xScale(0))
         .style('fill', 'black')
         .style("opacity", 0.5)
         .style('stroke', 'black')
         .style('stroke-width', 1.5);
-      
+          
+      // draw a curved arrow inside the event horizon to indicate the direction of rotation 
+        if (a !== 0) {
+          let curve = d3Path();
+          curve.moveTo(xScale(0.8*r_plus) + xShift, yScale(0))
+          curve.arc(xScale(0) + xShift, yScale(0), xScale(0.8*r_plus) - xScale(0), 0, Math.PI, true)
+          // make an arrow
+          g.append('defs')
+          .append('marker')
+          .attr('id', 'arrowhead')
+          .attr('viewBox', '0 0 12 12')
+          .attr('refX', 6)
+          .attr('refY', 6)
+          .attr('orient', 'auto')
+          .attr('markerWidth', 10)
+          .attr('markerHeight', 10)
+          .attr('xoverflow', 'visible')
+          .append('svg:path')
+          .attr('d', 'M 0 0 L 10 5 L 0 10 z')
+          .attr('fill', 'black')
+
+
+          //print curve position
+          g.append('path')
+          .attr('d', curve)
+          .style('fill', 'none')
+          .style('stroke', 'black')
+          .attr('marker-end', 'url(#arrowhead)')
+        }
+
       dispatch(setClearGraph(false))
       dispatch(setCollided(false))
     } else {
@@ -172,35 +206,40 @@ function D3Plot({ data, w, h, r0, a }) {
       debugLog("Number of new points: ", data.length);
       // debugLog("Number of drawn points: ", num_drawn);
       
-      // Define the line generator function
-      const line = d3.line()
-      .x(d => xScale(d.x) + xShift)
-      .y(d => yScale(d.y));
-
       let path = g.select('path');
 
-      if (path.empty()) {
-        path = g.append('path')
+    if (path.empty()) {
+      path = g.append('path')
+        .attr('fill', 'none')
+        .attr('stroke', '#1976d2')
+        .attr('stroke-width', 1.5);
+    }
+    // Append line and circle for each new point
+    data.forEach((datum) => {
+      const x = xScale(datum.x) + xShift;
+      const y = yScale(datum.y);
+
+      // If there is a previous point, draw a line from the previous point to the new point
+      if (prevPoint.current) {
+        g.append('path')
+          .attr('d', `M ${prevPoint.current.x},${prevPoint.current.y} L ${x},${y}`)
           .attr('fill', 'none')
           .attr('stroke', '#1976d2')
           .attr('stroke-width', 1.5);
       }
 
-      // // Update the 'd' attribute of the path element
-      // path.datum(newData)
-      //   .attr('d', line);
+      // Draw a circle at the new point
+      g.append('circle')
+        .attr('cx', x)
+        .attr('cy', y)
+        .attr('r', 3)
+        .style('fill', '#1976d2');
 
-      data.forEach(datum => {
-        path.lineTo(datum.x, datum.y)
-        g.append('circle')
-          .attr('cx', xScale(datum.x) + xShift)
-          .attr('cy', yScale(datum.y))
-          .attr('r', 3)
-          .style('fill', '#1976d2');
+      // Update the previous point
+      prevPoint.current = { x, y };
+      debugLog("set prevPoint to",datum.x, datum.y)
+    });
 
-        // // after appending the point set drawn to true
-        // dispatch(markAsDrawn(datum));
-      });
     }
     const endTime = performance.now();
     console.log('D3Plot duration:', endTime - startTime);
@@ -297,7 +336,9 @@ function PlotManager() {
             clearInterval(intervalId)
             debugLog('hit the singularity')
             dispatch(setCollided(true))
-            dispatch(addPlotData({x:0, y:0}))
+            pointArr.push({x:0, y:0})
+            dispatch(setPlotData(pointArr))
+            dispatch(setProperTime(newTau))
             dispatch(setSimulationRunning(false))
             return
           } else {

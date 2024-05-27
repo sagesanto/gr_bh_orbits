@@ -15,7 +15,7 @@ export default function AngSpeedSlider () {
     <Tooltip title="Initial angular velocity, as a fraction of the speed required for a circular orbit at the given initial radius">
         <div>
         <Grid item container justifyContent="space-between" alignItems="center">
-        <Typography variant="caption" sx={{ marginRight: 2 }}> -1 </Typography>
+        <Typography variant="caption" sx={{ marginRight: 2 }} >  -1 </Typography>
         <Grid item xs>
             <Slider 
             aria-labelledby="continuous-slider"
@@ -28,10 +28,10 @@ export default function AngSpeedSlider () {
             disabled={simulationRunning}
             />
         </Grid>
-        <Typography variant="caption" sx={{ marginLeft: 2 }}> +1 </Typography>
+        <Typography variant="caption"  sx={{ marginLeft: 2 }}> +1 </Typography>
         </Grid>
         <Grid item container justifyContent="center">
-            <Typography align="center">
+            <Typography align="center" >
             {angularVel.toFixed(2)} ω<sub>c</sub>
             </Typography>
         </Grid>

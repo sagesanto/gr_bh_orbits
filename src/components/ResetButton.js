@@ -16,6 +16,7 @@ export default function ResetButton() {
                             dispatch(setSimulationRunning(false))
                             dispatch(setProperTime(0)) }}
             sx={{ borderColor: 'red', color: 'red', '&:hover': { boxShadow: '0 0 10px red',} }}
+            style={{ fontWeight: 600 }}
             >
                 Reset Simulation
             </Button>

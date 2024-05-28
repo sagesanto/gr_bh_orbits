@@ -24,6 +24,7 @@ function debugLog(...args) {
 }
 
 function calc_derived_values(a,gr,r0,wFrac,tdiv) {
+  // gr is 1 or 0 depending on whether we're using GR or not
   let r = r0
   const A = a*gr // spin is "zero" for newtonian purposes
   const z = 2*r0**(3/2)*A
@@ -58,6 +59,7 @@ function calc_derived_values(a,gr,r0,wFrac,tdiv) {
 }
 
 function compute_next_point(a,gr,r, phi, E, L, dtau, rp, rf, tau){
+    // gr is 1 or 0 depending on whether we're using GR or not
     debugLog("-------- compute next point --------")
     debugLog("Params: a:",a,"gr:",gr,"r:",r,"phi:",phi,"E:",E,"L:",L, "dtau:",dtau,"rp:",rp,"rf:",rf,"tau:",tau)
     debugLog("------------------------------------")
@@ -98,7 +100,6 @@ function D3Plot({ data, w, h, r0, a }) {
 
   useEffect(() => {
     const startTime = performance.now();
-    // debugLog("data at beginning:",data)
     if (width <= 0 || height <= 0) return
 
     const svg = d3.select(ref.current)    
@@ -146,13 +147,13 @@ function D3Plot({ data, w, h, r0, a }) {
             y: (1+Math.sqrt(1-a**2*Math.cos(t+Math.PI/2)**2)) * Math.sin(t)
           }
         })
+        // calculate ergo region
         const ergo = d3.line()
           .x(d => xScale(d.x) + xShift)
           .y(d => yScale(d.y))
           .curve(d3.curveBasisClosed);
           g.append('path')
           .attr('d', ergo(ergoData))
-          // .attr('transform', `translate(${xScale(0) + xShift},${yScale(0)})`)
           .style('fill', 'none')
           .style('stroke', 'red')
           .style('opacity', 1);
@@ -189,7 +190,6 @@ function D3Plot({ data, w, h, r0, a }) {
           .attr('d', 'M 0 0 L 10 5 L 0 10 z')
           .attr('fill', 'black')
 
-
           //print curve position
           g.append('path')
           .attr('d', curve)
@@ -214,12 +214,12 @@ function D3Plot({ data, w, h, r0, a }) {
         .attr('stroke', '#1976d2')
         .attr('stroke-width', 1.5);
     }
-    // Append line and circle for each new point
+    // draw
     data.forEach((datum) => {
       const x = xScale(datum.x) + xShift;
       const y = yScale(datum.y);
 
-      // If there is a previous point, draw a line from the previous point to the new point
+      // draw from prev point to current point
       if (prevPoint.current) {
         g.append('path')
           .attr('d', `M ${prevPoint.current.x},${prevPoint.current.y} L ${x},${y}`)
@@ -228,18 +228,27 @@ function D3Plot({ data, w, h, r0, a }) {
           .attr('stroke-width', 1.5);
       }
 
-      // Draw a circle at the new point
-      g.append('circle')
-        .attr('cx', x)
-        .attr('cy', y)
-        .attr('r', 3)
-        .style('fill', '#1976d2');
-
-      // Update the previous point
+      // update the previous point
       prevPoint.current = { x, y };
-      debugLog("set prevPoint to",datum.x, datum.y)
     });
+    // draw the last point (the particle)
+    if (prevPoint.current) {
+        let circle = g.select('circle.particle');
+        if (circle.empty()) {
+          circle = g.append('circle')
+            .attr('class', 'particle')
+            .attr('cx', prevPoint.current.x)
+            .attr('cy', prevPoint.current.y)
+            .attr('r', 3)
+            .style('fill', '#1976d2');
+        }
 
+        circle.attr('cx', prevPoint.current.x)
+          .attr('cy', prevPoint.current.y)
+          .attr('r', 3)
+          .style('fill', '#1976d2');
+
+        }
     }
     const endTime = performance.now();
     console.log('D3Plot duration:', endTime - startTime);

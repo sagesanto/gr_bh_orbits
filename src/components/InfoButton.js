@@ -20,7 +20,7 @@ const style = {
   }
 
 export default function InfoButton() {
-    const [open, setOpen] = React.useState(false)
+    const [open, setOpen] = React.useState(true)
   
     return (
       <div>
@@ -37,8 +37,7 @@ export default function InfoButton() {
         </Typography>
         <Typography id="modal-modal-description" sx={{ mt: 2, overflowWrap: 'break-word' }} style={{ fontWeight: 300 }}>
             This program simulates the motion of a test particle in orbit around a compact object with mass M centered at r = 0. The object begins at r = 15GM, τ = 0  at the top of the screen and begins to orbit with the specified parameters. <br />
-            The gray circle indicates the event horizon of the compact object, while the red circle indicates the infinite-redshift surface. (These two are equivalent when the compact object is not spinning). <br />
-              
+            The gray circle indicates the event horizon of the compact object. The simulation ends if the object reaches the singularity at r=0.
           </Typography>
           <Typography id="modal-modal-description2" sx={{ mt: 2 }}>
             Sage Santomenna 2023-2024 <br />

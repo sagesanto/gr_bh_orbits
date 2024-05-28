@@ -114,11 +114,11 @@ function App(props) {
           <SimSpeedSlider/>
         </LabeledBox>
 
-        <LabeledBox label="τ Resolution">
+        {/* <LabeledBox label="τ Resolution">
           <Box>
             <τCoordSelector/>
           </Box>
-        </LabeledBox>
+        </LabeledBox> */}
 
         <LabeledBox label="Central Object Spin">
           <SpinSlider/>

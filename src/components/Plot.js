@@ -9,6 +9,12 @@ import { scaleLinear } from 'd3-scale'
 const MAX_RES = 100 // maximum number of points added in one tick
 const debug = true
 
+function points_per_tick(rp) {
+  // function that determines how the number of points added in one tick scales with the radius
+  // return Math.min(MAX_RES, Math.ceil(Math.exp(1/(rp-5))))
+  return Math.min(MAX_RES, Math.ceil(10*(rp-1)**(-1/3)))
+}
+
 function logProfile(id, phase, actualTime, baseTime, startTime, commitTime) {
   console.log(`--- ${id}'s ${phase} phase: ---`)
   console.log(`Actual time: ${actualTime}`)
@@ -140,23 +146,24 @@ function D3Plot({ data, w, h, r0, a }) {
         .call(yAxis)
 
       // draw the ergosphere
-        const ergoData = d3.range(0, 2 * Math.PI, 0.01).map(t => {
-          // i'm adding Math.PI/2 to the angle to rotate by 90 degrees because i want to. not sure if this messes things up
-          return {
-            x: (1+Math.sqrt(1-a**2*Math.cos(t+Math.PI/2)**2)) * Math.cos(t),
-            y: (1+Math.sqrt(1-a**2*Math.cos(t+Math.PI/2)**2)) * Math.sin(t)
-          }
-        })
-        // calculate ergo region
-        const ergo = d3.line()
-          .x(d => xScale(d.x) + xShift)
-          .y(d => yScale(d.y))
-          .curve(d3.curveBasisClosed);
-          g.append('path')
-          .attr('d', ergo(ergoData))
-          .style('fill', 'none')
-          .style('stroke', 'red')
-          .style('opacity', 1);
+      //   // calculate ergo region
+      //   const ergoData = d3.range(0, 2 * Math.PI, 0.01).map(t => {
+      //     // i'm adding Math.PI/2 to the angle to rotate by 90 degrees because i want to. not sure if this messes things up
+      //     return {
+      //       x: (1+Math.sqrt(1-a**2*Math.cos(t+Math.PI/2)**2)) * Math.cos(t),
+      //       y: (1+Math.sqrt(1-a**2*Math.cos(t+Math.PI/2)**2)) * Math.sin(t)
+      //     }
+      //   })
+      //  // draw it
+      //   const ergo = d3.line()
+      //     .x(d => xScale(d.x) + xShift)
+      //     .y(d => yScale(d.y))
+      //     .curve(d3.curveBasisClosed);
+      //     g.append('path')
+      //     .attr('d', ergo(ergoData))
+      //     .style('fill', 'none')
+      //     .style('stroke', 'red')
+      //     .style('opacity', 1);
       
           
       // event horizon
@@ -331,8 +338,8 @@ function PlotManager() {
 
     const updatePlot = () => {
       const startTime = performance.now();
-      let num_points = Math.min(MAX_RES, Math.ceil(10/Math.sqrt(rp))) // number of points added in one tick
-      let dtau_eff = dtau/num_points // effective time step (to account for number of points added in one tick)
+      let num_points = points_per_tick(rp); // number of points added in one tick
+      let dtau_eff = dtau/num_points; // effective time step (to account for number of points added in one tick)
       debugLog("num_points",num_points)
       let pointArr = []
       for (let i = 0; i < num_points; i++) {
@@ -355,6 +362,7 @@ function PlotManager() {
             // dispatch(addPlotData({x:newPoint.x, y:newPoint.y}))
           }
           [r, phi, dtau, rp, rf, tau] = [newR, newPhi, newDtau * num_points, newRp, newRf, newTau]
+          dtau_eff = dtau/num_points
           dispatch(setProperTime(tau))
         }
         dispatch(setPlotData(pointArr))

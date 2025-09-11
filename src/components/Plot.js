@@ -9,12 +9,6 @@ import { scaleLinear } from 'd3-scale'
 const MAX_RES = 100 // maximum number of points added in one tick
 const debug = true
 
-function points_per_tick(rp) {
-  // function that determines how the number of points added in one tick scales with the radius
-  // return Math.min(MAX_RES, Math.ceil(Math.exp(1/(rp-5))))
-  return Math.min(MAX_RES, Math.ceil(10*(rp-1)**(-1/3)))
-}
-
 function logProfile(id, phase, actualTime, baseTime, startTime, commitTime) {
   console.log(`--- ${id}'s ${phase} phase: ---`)
   console.log(`Actual time: ${actualTime}`)
@@ -28,6 +22,7 @@ function debugLog(...args) {
     console.log(...args)
   }
 }
+
 
 function calc_derived_values(a,gr,r0,wFrac,tdiv) {
   // gr is 1 or 0 depending on whether we're using GR or not
@@ -62,6 +57,29 @@ function calc_derived_values(a,gr,r0,wFrac,tdiv) {
   let rp = r
   let rf = null
   return ([r, phi, E, L, dtau, rp, rf, tau])
+}
+
+function calc_dtau(a,gr,r0,wFrac,tdiv) {
+  // gr is 1 or 0 depending on whether we're using GR or not
+  let r = r0
+  const A = a*gr // spin is "zero" for newtonian purposes
+  const z = 2*r0**(3/2)*A
+  const q = r**3-3*r**2*gr
+  let wC = null
+  if (wFrac > 0) {
+      if (q+z<0){
+          throw new Error(`Invalid state: q + z is less than 0 (q: ${q}, z: ${z})`)
+      }
+      wC = (q+z)**(-1/2)
+  }
+  else{
+      if (q-z<0){
+          throw new Error(`Invalid state: q - z is less than 0 (q: ${q}, z: ${z})`)
+      }
+      wC = (q-z)**(-1/2)
+  }
+  let dtau = 2*Math.PI/wC/tdiv
+  return dtau
 }
 
 function compute_next_point(a,gr,r, phi, E, L, dtau, rp, rf, tau){
@@ -145,7 +163,7 @@ function D3Plot({ data, w, h, r0, a }) {
         .attr('transform', `translate(${xShift},0)`)
         .call(yAxis)
 
-      // draw the ergosphere
+      // // draw the ergosphere
       //   // calculate ergo region
       //   const ergoData = d3.range(0, 2 * Math.PI, 0.01).map(t => {
       //     // i'm adding Math.PI/2 to the angle to rotate by 90 degrees because i want to. not sure if this messes things up
@@ -164,17 +182,23 @@ function D3Plot({ data, w, h, r0, a }) {
       //     .style('fill', 'none')
       //     .style('stroke', 'red')
       //     .style('opacity', 1);
-      
-          
+
+      let bh_color = 'black'
+      let bh_stroke = 'black'
+      let bh_opacity = 1
+
+      let arrow_color = 'white'
+      let arrow_stroke = 'white'
+
       // event horizon
         let r_plus = 1 + Math.sqrt(1-a**2)
         g.append('circle')
         .attr('cx', xScale(0) + xShift)
         .attr('cy', yScale(0))
         .attr('r', xScale(r_plus) - xScale(0))
-        .style('fill', 'black')
-        .style("opacity", 0.5)
-        .style('stroke', 'black')
+        .style('fill', bh_color)
+        .style("opacity", bh_opacity)
+        .style('stroke', bh_stroke)
         .style('stroke-width', 1.5);
           
       // draw a curved arrow inside the event horizon to indicate the direction of rotation 
@@ -195,13 +219,13 @@ function D3Plot({ data, w, h, r0, a }) {
           .attr('xoverflow', 'visible')
           .append('svg:path')
           .attr('d', 'M 0 0 L 10 5 L 0 10 z')
-          .attr('fill', 'black')
+          .attr('fill', arrow_color)
 
           //print curve position
           g.append('path')
           .attr('d', curve)
           .style('fill', 'none')
-          .style('stroke', 'black')
+          .style('stroke', arrow_stroke)
           .attr('marker-end', 'url(#arrowhead)')
         }
 
@@ -233,6 +257,14 @@ function D3Plot({ data, w, h, r0, a }) {
           .attr('fill', 'none')
           .attr('stroke', '#1976d2')
           .attr('stroke-width', 1.5);
+
+        let circle = g.append('circle')
+            .attr('class', 'particle')
+            .attr('cx', prevPoint.current.x)
+            .attr('cy', prevPoint.current.y)
+            .attr('r', 3)
+            .style('fill', '#1976d2');
+        
       }
 
       // update the previous point
@@ -266,6 +298,17 @@ function D3Plot({ data, w, h, r0, a }) {
   )
 }
 
+function tdiv_vs_r(rp) {
+  // a = 200
+  // b = 2
+  // c = 10
+
+
+  // function that determines how the timestep should change with radius
+  // return Math.min(MAX_RES, Math.ceil(Math.exp(1/(rp-5))))
+  // return Math.min(MAX_RES, Math.ceil(10*(rp-1)**(-1/3)))
+  return 200*1/(((rp+2)/10)**20)
+}
 
 function DynamicPlot() {
   const plotData = useSelector((state) => state.plotData.value)
@@ -337,11 +380,20 @@ function PlotManager() {
     let intervalId
 
     const updatePlot = () => {
+      if (!simulationRunningRef.current) {
+          return
+      }
       const startTime = performance.now();
-      let num_points = points_per_tick(rp); // number of points added in one tick
-      let dtau_eff = dtau/num_points; // effective time step (to account for number of points added in one tick)
-      debugLog("num_points",num_points)
+      // let tdiv_eff = tdiv_vs_r(rp)
+      // let dtau_eff = calc_dtau(a,gr,r0,wFrac,tdiv_eff)
+      // dtau_eff = Math.min(dtau_eff, dtau)
+      // let num_points = Math.ceil(dtau/dtau_eff);
+      // debugLog("num_points",num_points)
+      // debugLog("dtau_eff",dtau_eff,"at r:",rp,"with",num_points,"points","tdiv_eff",tdiv_eff)
+      // debugLog("dtau",dtau)
       let pointArr = []
+      let num_points = 1
+      let dtau_eff = dtau
       for (let i = 0; i < num_points; i++) {
         if (!simulationRunningRef.current) {
           return
@@ -361,8 +413,9 @@ function PlotManager() {
             pointArr.push(newPoint)
             // dispatch(addPlotData({x:newPoint.x, y:newPoint.y}))
           }
-          [r, phi, dtau, rp, rf, tau] = [newR, newPhi, newDtau * num_points, newRp, newRf, newTau]
-          dtau_eff = dtau/num_points
+          [r, phi, dtau, rp, rf, tau] = [newR, newPhi, newDtau, newRp, newRf, newTau]
+          // [r, phi, dtau, rp, rf, tau] = [newR, newPhi, dtau, newRp, newRf, newTau]
+          // dtau_eff = dtau/num_points
           dispatch(setProperTime(tau))
         }
         dispatch(setPlotData(pointArr))

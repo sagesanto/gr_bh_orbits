@@ -24,6 +24,7 @@ function debugLog(...args) {
 }
 
 
+// derive initial conditions from parameters
 function calc_derived_values(a,gr,r0,wFrac,tdiv) {
   // gr is 1 or 0 depending on whether we're using GR or not
   let r = r0
@@ -52,35 +53,36 @@ function calc_derived_values(a,gr,r0,wFrac,tdiv) {
   const E = E2**(1/2)
   const L = (q2*w-2*A*(E/r0))/(1-2*gr/r)
   let dtau = 2*Math.PI/wC/tdiv
-  let phi = -Math.PI/2
+  let phi = Math.PI/2
   let tau = 0
   let rp = r
   let rf = null
   return ([r, phi, E, L, dtau, rp, rf, tau])
 }
 
-function calc_dtau(a,gr,r0,wFrac,tdiv) {
-  // gr is 1 or 0 depending on whether we're using GR or not
-  let r = r0
-  const A = a*gr // spin is "zero" for newtonian purposes
-  const z = 2*r0**(3/2)*A
-  const q = r**3-3*r**2*gr
-  let wC = null
-  if (wFrac > 0) {
-      if (q+z<0){
-          throw new Error(`Invalid state: q + z is less than 0 (q: ${q}, z: ${z})`)
-      }
-      wC = (q+z)**(-1/2)
-  }
-  else{
-      if (q-z<0){
-          throw new Error(`Invalid state: q - z is less than 0 (q: ${q}, z: ${z})`)
-      }
-      wC = (q-z)**(-1/2)
-  }
-  let dtau = 2*Math.PI/wC/tdiv
-  return dtau
-}
+// was using this for adaptive timestep
+// function calc_dtau(a,gr,r0,wFrac,tdiv) {
+//   // gr is 1 or 0 depending on whether we're using GR or not
+//   let r = r0
+//   const A = a*gr // spin is "zero" for newtonian purposes
+//   const z = 2*r0**(3/2)*A
+//   const q = r**3-3*r**2*gr
+//   let wC = null
+//   if (wFrac > 0) {
+//       if (q+z<0){
+//           throw new Error(`Invalid state: q + z is less than 0 (q: ${q}, z: ${z})`)
+//       }
+//       wC = (q+z)**(-1/2)
+//   }
+//   else{
+//       if (q-z<0){
+//           throw new Error(`Invalid state: q - z is less than 0 (q: ${q}, z: ${z})`)
+//       }
+//       wC = (q-z)**(-1/2)
+//   }
+//   let dtau = 2*Math.PI/wC/tdiv
+//   return dtau
+// }
 
 function compute_next_point(a,gr,r, phi, E, L, dtau, rp, rf, tau){
     // gr is 1 or 0 depending on whether we're using GR or not
@@ -117,7 +119,7 @@ function D3Plot({ data, w, h, r0, a }) {
   .range([0, min_dimension])
   
   const yScale = scaleLinear()
-    .domain([-1.2*r0, 1.2*r0])
+    .domain([1.2*r0, -1.2*r0])
     .range([0, min_dimension])
 
   const prevPoint = React.useRef(null);
@@ -163,8 +165,10 @@ function D3Plot({ data, w, h, r0, a }) {
         .attr('transform', `translate(${xShift},0)`)
         .call(yAxis)
 
+
+      // lol this bit was drawing it from the wrong perspective. from the top its just 2GM circle
       // // draw the ergosphere
-      //   // calculate ergo region
+      //   // calculate ergoregion
       //   const ergoData = d3.range(0, 2 * Math.PI, 0.01).map(t => {
       //     // i'm adding Math.PI/2 to the angle to rotate by 90 degrees because i want to. not sure if this messes things up
       //     return {
@@ -183,6 +187,21 @@ function D3Plot({ data, w, h, r0, a }) {
       //     .style('stroke', 'red')
       //     .style('opacity', 1);
 
+      let ergo_color = 'gray'
+      let ergo_stroke = 'gray'
+      let ergo_opacity = 1
+
+      let r_ergo = 2 
+      g.append('circle')
+      .attr('cx', xScale(0) + xShift)
+      .attr('cy', yScale(0))
+      .attr('r', xScale(r_ergo) - xScale(0))
+      .style('fill', ergo_color)
+      .style("opacity", ergo_opacity)
+      .style('stroke', ergo_stroke)
+      .style('stroke-width', 1.5);
+
+      // draw the event horizon
       let bh_color = 'black'
       let bh_stroke = 'black'
       let bh_opacity = 1
@@ -204,8 +223,8 @@ function D3Plot({ data, w, h, r0, a }) {
       // draw a curved arrow inside the event horizon to indicate the direction of rotation 
         if (a !== 0) {
           let curve = d3Path();
-          curve.moveTo(xScale(0.8*r_plus) + xShift, yScale(0))
           curve.arc(xScale(0) + xShift, yScale(0), xScale(0.8*r_plus) - xScale(0), 0, Math.PI, true)
+          curve.moveTo(xScale(0.8*r_plus) + xShift, yScale(0))
           // make an arrow
           g.append('defs')
           .append('marker')
@@ -218,7 +237,7 @@ function D3Plot({ data, w, h, r0, a }) {
           .attr('markerHeight', 10)
           .attr('xoverflow', 'visible')
           .append('svg:path')
-          .attr('d', 'M 0 0 L 10 5 L 0 10 z')
+          .attr('d', 'M 0 0 L 10 0 L 5 10 z')
           .attr('fill', arrow_color)
 
           //print curve position
